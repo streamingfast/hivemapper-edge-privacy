@@ -28,5 +28,5 @@ model.export(format="onnx", imgsz=[960, 960])
 
 # Run the ONNX model
 ```bash
-python main.py --model-path /home/ed/git/ONNX-YOLOv8-Object-Detection/devel/models/pvc.onnx --show-detection True --unprocessed-framekm-path /home/ed/git/ONNX-YOLOv8-Object-Detection/devel/unprocessed_framekm --framekm-path /home/ed/git/ONNX-YOLOv8-Object-Detection/devel/framekm --metadata-path /home/ed/git/ONNX-YOLOv8-Object-Detection/devel/metadata --ml-metadata-path /home/ed/git/ONNX-YOLOv8-Object-Detection/devel/ml_metadata --model-hash-path /home/ed/git/ONNX-YOLOv8-Object-Detection/devel/models/pvc.onnx.hash
+python main.py --model-path /home/ed/git/hivemapper-edge-privacy/devel/models/pvc.onnx --show-detection True --unprocessed-framekm-path /home/ed/git/hivemapper-edge-privacy/devel/unprocessed_framekm --unprocessed-metadata-path /home/ed/git/hivemapper-edge-privacy/devel/unprocessed_metadata --framekm-path /home/ed/git/hivemapper-edge-privacy/devel/framekm --metadata-path /home/ed/git/hivemapper-edge-privacy/devel/metadata --ml-metadata-path /home/ed/git/hivemapper-edge-privacy/devel/ml_metadata --model-hash-path /home/ed/git/hivemapper-edge-privacy/devel/models/pvc.onnx.hash
 ```

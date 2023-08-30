@@ -17,14 +17,16 @@ import shutil
 class Watcher:
     notifier: inotify.adapters.Inotify
     onnx_detector: YOLOv8
+    unprocessed_metadata_path: str
     framekm_path: str
     metadata_path: str
     ml_metadata_path: str
     logger: logging.Logger
 
-    def __init__(self, detector: YOLOv8, framekm_path: str, metadata_path: str, ml_metadata_path: str, logger: logging.Logger):
+    def __init__(self, detector: YOLOv8, unprocessed_metadata_path: str, framekm_path: str, metadata_path: str, ml_metadata_path: str, logger: logging.Logger):
         self.notifier = inotify.adapters.Inotify()
         self.onnx_detector = detector
+        self.unprocessed_metadata_path = unprocessed_metadata_path
         self.framekm_path = framekm_path
         self.metadata_path = metadata_path
         self.ml_metadata_path = ml_metadata_path
@@ -42,37 +44,22 @@ class Watcher:
                 new_path = os.path.join(path, name)
                 if os.path.isdir(new_path) and name[0] != r'_':
                     self.logger.info(f"processing new folder: {new_path}")
-                    self._process_folder(name, path, new_path)
+                    self._process_folder(name, new_path)
                     self.logger.debug(f"done processing folder: {new_path}")
-                
-                if os.path.isfile(new_path) and 'km_completed_' in name:
-                    renamed_path = os.path.join(self.framekm_path, name.replace('km_completed_', ''))
-                    self.logger.debug(f'path file {path}')
-                    self.logger.debug(f'new_path {new_path}')
-                    self.logger.debug(f'renamed_path {renamed_path}')
-                    os.rename(new_path, renamed_path)
-                    self.logger.info(f'{new_path} moved to {renamed_path}')
-                
-                if os.path.isfile(new_path) and 'metadata_ml_completed_' in name:
-                    self.logger.debug(f'completed ml {name}')
-                    renamed_path = os.path.join(self.ml_metadata_path, name.replace('metadata_ml_completed_', '') + '.json')
-                    self.logger.debug(f'renamed_path {renamed_path}')
-                    os.rename(new_path, renamed_path)
-                    self.logger.info(f'{new_path} moved to {renamed_path}')
 
-    def _process_folder(self, name: str, orig_path: str, new_folder_path: str):
-        framekm_name = os.path.join(new_folder_path, f'bin_{name}') 
+    def _process_folder(self, framekm: str, unprocessed_framekm_path: str):
+        bin_full_framekm = os.path.join(unprocessed_framekm_path, f'bin_{framekm}') 
         frames = []
         frames_sizes = []
-        total_processed_frame_size = 0.0
-        for f in os.listdir(new_folder_path):
-            p = os.path.join(new_folder_path, f)
+        total_processed_frame_size = 0
+        for f in os.listdir(unprocessed_framekm_path):
+            p = os.path.join(unprocessed_framekm_path, f)
             self.logger.debug(f'file name {p}')
             img = cv2.imread(p, cv2.COLOR_BGR2RGB)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             frames.append((p, img))
         
-        with open(f'{framekm_name}', 'ab') as f:
+        with open(f'{bin_full_framekm}', 'ab') as f:
             privacy_ml_metadata = ml_metadata.GenericMLMetadata()  # for all the frames in a packed framekm
             for j, val in enumerate(frames):
                 img_id = val[0]
@@ -102,26 +89,41 @@ class Watcher:
                 f.write(img_byte_arr)
 
                 img_ml_data.img_id = img_id
-                img_ml_data.name = f'{name}.json'
+                img_ml_data.name = f'{framekm}.json'
 
                 privacy_ml_metadata.frame_data.append(img_ml_data)
 
-            with open(os.path.join(self.metadata_path, name), 'w+') as f:
-                original_content = json.loads(f.read())
-                orignal_content.bundle.size = total_processed_frame_size
-                for i, size in enumerate(frames_sizes):
-                    pass
-                
+        privacy_ml_metadata.model_hash = self.onnx_detector.model_hash
+        self.write_ml_metadata(privacy_ml_metadata, framekm)
+        self.move_and_cleanup_framekm(framekm, bin_full_framekm, unprocessed_framekm_path)
+        self.move_and_cleanup_framekm_metadata(frames_sizes, framekm, total_processed_frame_size)
+        
 
-            privacy_ml_metadata.model_hash = self.onnx_detector.model_hash
-            metadata = ml_metadata.MLMetadata()
-            metadata.privacy = privacy_ml_metadata
-            metadata_path = os.path.join(orig_path, f'metadata_ml_completed_{name}')
+    def write_ml_metadata(self, privacy_ml_metadata: ml_metadata.GenericMLMetadata, framekm: str):
+        metadata = ml_metadata.MLMetadata()
+        metadata.privacy = privacy_ml_metadata
+        with open(os.path.join(self.ml_metadata_path, framekm + '.json'), 'w') as f:
+            f.write(metadata.toJson())
 
-            with open(metadata_path, 'w') as f:
-                f.write(metadata.toJson())
+    def move_and_cleanup_framekm(self, framekm: str, bin_full_framekm: str, unprocessed_framekm_path: str):
+        self.logger.info(f'moving and cleaning up directories and files for {framekm}')
+        framkm_name_orig_path = os.path.join(self.framekm_path, framekm)
+        os.rename(bin_full_framekm, framkm_name_orig_path)
+        self.logger.debug(f'moved {bin_full_framekm} to {framkm_name_orig_path}')
+        shutil.rmtree(unprocessed_framekm_path)
+        self.logger.debug(f'cleaned up {unprocessed_framekm_path}')
+    
+    def move_and_cleanup_framekm_metadata(self, frames_sizes: [], framekm: str, total_processed_frame_size: int):
+        original_content = None
+        unprocessed_metadata_framekm_path = os.path.join(self.unprocessed_metadata_path, framekm + '.json')
+        processed_metadata_framekm_path = os.path.join(self.metadata_path, framekm + '.json')
 
-        self.logger.info(f'moving and cleaning up directories and files for {name}')
-        framkm_name_orig_path = os.path.join(orig_path, f'km_completed_{name}')
-        os.rename(framekm_name, framkm_name_orig_path)
-        shutil.rmtree(new_folder_path)
+        with open(unprocessed_metadata_framekm_path, 'r') as f:
+            original_content = json.loads(f.read())
+            original_content['bundle']['size'] = total_processed_frame_size
+            for i, size in enumerate(frames_sizes):
+                original_content['frames'][i]['bytes'] = size
+        
+        with open(processed_metadata_framekm_path, 'w') as f:
+            f.write(str(original_content))
+        os.remove(unprocessed_metadata_framekm_path)
