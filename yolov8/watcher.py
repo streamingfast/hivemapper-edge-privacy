@@ -11,6 +11,7 @@ import yolov8.utils
 import os
 import glob
 import shutil
+import uuid
 
 
 class Watcher:
@@ -48,7 +49,8 @@ class Watcher:
             self.logger.debug(f"Done processing folder: {unprocessed_framekm_path}")
 
     def _process_folder(self, framekm: str, unprocessed_framekm_path: str):
-        bin_full_framekm = os.path.join(unprocessed_framekm_path, f'bin_{framekm}') 
+        framekm_id = f'{str(uuid.uuid4())}'
+        bin_full_framekm = os.path.join('/tmp', framekm_id) 
         frames = []
         frames_sizes = []
         total_processed_frame_size = 0
