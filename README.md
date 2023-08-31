@@ -42,7 +42,8 @@ Make sure that you have nothing in `unprocessed_framekm` and that `unprocessed_m
 For reproduction purposes, I would suggest having a `unprocessed_framekm_orig` folder containing all the framekms that you will test the model on.
 
 ```bash
-cp -r /mnt/data/unprocessed_framekm_orig/km_20230830_230525_10_0 /mnt/data/unprocessed_framekm_orig/km_20230830_230525_10_0.clone && mv /mnt/data/unprocessed_framekm_orig/km_20230830_230525_10_0.clone /mnt/data/unprocessed_framekm/km_20230830_230525_10_0  
+export FRAME_KM=km_20230830_230525_10_0
+cp -r /mnt/data/unprocessed_framekm_orig/$FRAME_KM /mnt/data/unprocessed_framekm_orig/$FRAME_KM.clone && mv /mnt/data/unprocessed_framekm_orig/$FRAME_KM.clone /mnt/data/unprocessed_framekm/$FRAME_KM
 ```
 
 > It's important to do a `mv` and not a `cp` on the folder as a `cp` is not atomic

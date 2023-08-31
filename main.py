@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
 from yolov8 import YOLOv8
 
-import inotify.adapters
 import logging
 import sys
+import time
 import yolov8.watcher as watcher
 
 
@@ -31,28 +31,33 @@ def main(args):
     logger = logging.getLogger(__name__)
     logger.info("Log level set: {}"
                 .format(logging.getLevelName(logger.getEffectiveLevel())))
-    logging.info(f'model {args.model_path} with input height: {args.input_height} input width: {args.input_height} initialized...')
+    logging.info(f'Model {args.model_path} with input height: {args.input_height} input width: {args.input_height} initialized...')
 
     unprocessed_framekm_path = args.unprocessed_framekm_path
     unprocessed_metadata_path = args.unprocessed_metadata_path
     framekm_path = args.framekm_path
     metadata_path = args.metadata_path
     ml_metadata_path = args.ml_metadata_path
-
-    yolov8_detector = YOLOv8(args.model_path, logger, int(args.input_height), int(args.input_width), args.show_detection, args.model_hash_path, conf_thres=0.2, iou_thres=0.3)
-    
-    # TODO: process debt of the unprocessed folder before starting the watcher
-    
-    w = watcher.Watcher(yolov8_detector, unprocessed_metadata_path, framekm_path, metadata_path, ml_metadata_path, logger)
-    w.add_watch(unprocessed_framekm_path)
+    logger.debug(f'unprocessed_framekm_path: {unprocessed_framekm_path} \n \
+                 unprocessed_metadata_path: {unprocessed_metadata_path} \n \
+                 framekm_path: {framekm_path} \n \
+                 metadata_path: {metadata_path} \n \
+                 ml_metadata_path: {ml_metadata_path}')
 
     try:
-        logging.info('starting watcher...')
-        w.run()
-    except inotify.adapters.TerminalEventException as tee:
-        logging.info('bye')
+        yolov8_detector = YOLOv8(args.model_path, logger, int(args.input_height), int(args.input_width), args.show_detection, args.model_hash_path, conf_thres=0.2, iou_thres=0.3)
+    except FileNotFoundError:
+        print(f'{args.model_hash_path} does not exist')
+        sys.exit(1)
+    w = watcher.Watcher(yolov8_detector, unprocessed_framekm_path, unprocessed_metadata_path, framekm_path, metadata_path, ml_metadata_path, logger)
+
+    try:
+        logging.info('Starting watcher...')
+        while True:
+            w.scan_and_process_framekm()
+            time.sleep(3)
     except KeyboardInterrupt as ki:
-        logging.info('bye')
+        logging.info('Bye')
     except Exception as e:
         raise e
 

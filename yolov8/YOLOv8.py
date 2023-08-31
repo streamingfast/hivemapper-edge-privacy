@@ -5,6 +5,7 @@ import onnxruntime
 import yolov8.constant as constant
 import yolov8.ml_metadata as ml_metadata
 import logging
+import os
 
 from yolov8.utils import xywh2xyxy, xyxyxywh2, nms
 from yolov8.draw import draw_detections
@@ -24,6 +25,9 @@ class YOLOv8:
         self.conf_threshold = conf_thres
         self.iou_threshold = iou_thres
         self.show_detections = show_detections
+
+        if not os.path.exists(model_hash_path):
+            raise FileNotFoundError
 
         with open(model_hash_path) as f:
             self.model_hash = f.readlines()[0]
