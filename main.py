@@ -40,6 +40,9 @@ def main(args):
     ml_metadata_path = args.ml_metadata_path
 
     yolov8_detector = YOLOv8(args.model_path, logger, int(args.input_height), int(args.input_width), args.show_detection, args.model_hash_path, conf_thres=0.2, iou_thres=0.3)
+    
+    # TODO: process debt of the unprocessed folder before starting the watcher
+    
     w = watcher.Watcher(yolov8_detector, unprocessed_metadata_path, framekm_path, metadata_path, ml_metadata_path, logger)
     w.add_watch(unprocessed_framekm_path)
 
