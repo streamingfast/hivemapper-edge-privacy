@@ -137,5 +137,5 @@ class Watcher:
                 original_content['frames'][i]['bytes'] = size
         
         with open(processed_metadata_framekm_path, 'w') as f:
-            f.write(str(original_content))
+            json.dump(original_content, f)
         os.remove(unprocessed_metadata_framekm_path)
