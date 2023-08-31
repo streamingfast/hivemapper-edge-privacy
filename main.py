@@ -14,6 +14,7 @@ def main(args):
     arg_parser.add_argument('--input-width', default='960', help='set input wisdth for model')
     arg_parser.add_argument('--model-path', default='/mnt/data/models/pvc.onnx', help='set path of the onnx privacy model')
     arg_parser.add_argument('--show-detection', default=False, help='set if we want to draw detections or not')
+    arg_parser.add_argument('--save-detected-images', default=False, help='set it we want to save')
     arg_parser.add_argument('--unprocessed-framekm-path', default='/mnt/data/unprocessed_framekm', help='set the path for the unprocessed framekm')
     arg_parser.add_argument('--unprocessed-metadata-path', default='/mnt/data/unprocessed_metadata', help='set the path for the unprocessed metadata')
     arg_parser.add_argument('--framekm-path', default='/mnt/data/framekm', help='set the path for the processed framekm')
@@ -38,6 +39,7 @@ def main(args):
     framekm_path = args.framekm_path
     metadata_path = args.metadata_path
     ml_metadata_path = args.ml_metadata_path
+    save_detected_images = args.save_detected_images
     logger.debug(f'unprocessed_framekm_path: {unprocessed_framekm_path} \n \
                  unprocessed_metadata_path: {unprocessed_metadata_path} \n \
                  framekm_path: {framekm_path} \n \
@@ -49,7 +51,7 @@ def main(args):
     except FileNotFoundError:
         print(f'{args.model_hash_path} does not exist')
         sys.exit(1)
-    w = watcher.Watcher(yolov8_detector, unprocessed_framekm_path, unprocessed_metadata_path, framekm_path, metadata_path, ml_metadata_path, logger)
+    w = watcher.Watcher(yolov8_detector, unprocessed_framekm_path, unprocessed_metadata_path, framekm_path, metadata_path, ml_metadata_path, save_detected_images, logger)
 
     try:
         logging.info('Starting watcher...')

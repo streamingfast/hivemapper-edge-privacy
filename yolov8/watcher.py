@@ -21,15 +21,17 @@ class Watcher:
     framekm_path: str
     metadata_path: str
     ml_metadata_path: str
+    save_detected_images: bool
     logger: logging.Logger
 
-    def __init__(self, detector: YOLOv8, unprocessed_framekm_path: str, unprocessed_metadata_path: str, framekm_path: str, metadata_path: str, ml_metadata_path: str, logger: logging.Logger):
+    def __init__(self, detector: YOLOv8, unprocessed_framekm_path: str, unprocessed_metadata_path: str, framekm_path: str, metadata_path: str, ml_metadata_path: str, save_detected_images: bool, logger: logging.Logger):
         self.onnx_detector = detector
         self.unprocessed_framekm_path = unprocessed_framekm_path
         self.unprocessed_metadata_path = unprocessed_metadata_path
         self.framekm_path = framekm_path
         self.metadata_path = metadata_path
         self.ml_metadata_path = ml_metadata_path
+        self.save_detected_images = save_detected_images
         self.logger = logger
 
     def scan_and_process_framekm(self):
@@ -91,6 +93,11 @@ class Watcher:
                 total_processed_frame_size += size_of_processed_image
 
                 f.write(img_byte_arr)
+
+                if self.save_detected_images:
+                    im = Image.fromarray(combined_img)
+                    image_name = os.path.join(f'/tmp/detected_objects_{framekm}_{j}.jpg')
+                    im.save(image_name)
 
                 img_ml_data.img_id = img_id
                 img_ml_data.name = f'{framekm}.json'
